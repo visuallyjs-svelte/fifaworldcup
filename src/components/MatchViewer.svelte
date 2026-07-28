@@ -1,0 +1,108 @@
+<script>
+    export let match;
+
+    function parseMinute(m) {
+        if (typeof m === 'number') return m;
+        const matched = String(m).match(/^(\d+)/);
+        return matched ? parseInt(matched[1]) : 0;
+    }
+
+    function parseExtra(m) {
+        const matched = String(m).match(/\+(\d+)/);
+        return matched ? parseInt(matched[1]) : 0;
+    }
+
+    $: allGoals = match ? [
+        ...(match.goals1 || []).map(g => ({ ...g, team: 1 })),
+        ...(match.goals2 || []).map(g => ({ ...g, team: 2 }))
+    ].sort((a, b) => {
+        const minA = parseMinute(a.minute);
+        const minB = parseMinute(b.minute);
+        if (minA !== minB) return minA - minB;
+        return parseExtra(a.minute) - parseExtra(b.minute);
+    }) : [];
+
+    $: ft = match?.score?.ft || [0, 0];
+    $: et = match?.score?.et;
+    $: scoreText = et ? `${et[0]} - ${et[1]}` : `${ft[0]} - ${ft[1]}`;
+</script>
+
+{#if !match}
+    <div class="vjs-fwc-empty-state">
+        <svg
+            width="64"
+            height="64"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="vjs-fwc-empty-icon"
+        >
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        <div class="vjs-fwc-empty-text">Select a match to view details</div>
+    </div>
+{:else}
+    <div class="vjs-fwc-match-viewer">
+        <div class="vjs-fwc-match-viewer-header">
+            <div class="vjs-fwc-match-viewer-round">{match.round} {match.group ? `(${match.group})` : ''}</div>
+            <div class="vjs-fwc-match-viewer-meta">Match {match.num}</div>
+        </div>
+
+        <div class="vjs-fwc-match-viewer-teams">
+            <div class="vjs-fwc-match-viewer-team">
+                <div class="vjs-fwc-match-viewer-team-name">{match.team1}</div>
+            </div>
+            <div class="vjs-fwc-match-viewer-score-container">
+                <div class="vjs-fwc-match-viewer-score">
+                    <div class="vjs-fwc-match-viewer-score-main">{scoreText}</div>
+                </div>
+            </div>
+            <div class="vjs-fwc-match-viewer-team">
+                <div class="vjs-fwc-match-viewer-team-name">{match.team2}</div>
+            </div>
+        </div>
+
+        {#if match.score.p}
+            <div class="vjs-fwc-match-viewer-score-penalties-extra">
+                ({match.score.p[0]} - {match.score.p[1]} pen)
+            </div>
+        {:else if match.score.et}
+            <div class="vjs-fwc-match-viewer-extra-time">Extra time</div>
+        {/if}
+
+        <div class="vjs-fwc-match-viewer-info">
+            <div class="vjs-fwc-match-viewer-info-item">
+                <span class="vjs-fwc-match-viewer-label">Date:</span> {match.date}
+            </div>
+            <div class="vjs-fwc-match-viewer-info-item">
+                <span class="vjs-fwc-match-viewer-label">Time:</span> {match.time}
+            </div>
+            <div class="vjs-fwc-match-viewer-info-item">
+                <span class="vjs-fwc-match-viewer-label">Stadium:</span> {match.ground}
+            </div>
+        </div>
+
+        <div class="vjs-fwc-match-viewer-goals">
+            <div class="vjs-fwc-match-viewer-section-title">Goals</div>
+            {#if allGoals.length > 0}
+                <div class="vjs-fwc-match-viewer-goals-list">
+                    {#each allGoals as goal, index}
+                        <div class="vjs-fwc-match-viewer-goal-item team-{goal.team}">
+                            <span class="vjs-fwc-match-viewer-goal-minute">{goal.minute}'</span>
+                            <span class="vjs-fwc-match-viewer-goal-name">{goal.name}</span>
+                            {#if goal.penalty}<span class="vjs-fwc-match-viewer-goal-type">(P)</span>{/if}
+                            {#if goal.owngoal}<span class="vjs-fwc-match-viewer-goal-type">(OG)</span>{/if}
+                        </div>
+                    {/each}
+                </div>
+            {:else}
+                <div class="vjs-fwc-match-viewer-no-goals">No goals recorded</div>
+            {/if}
+        </div>
+    </div>
+{/if}
